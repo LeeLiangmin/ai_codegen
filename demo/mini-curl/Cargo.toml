@@ -1,0 +1,13 @@
+[package]
+name = "mini-curl"
+version = "0.1.0"
+edition = "2021"
+description = "A minimal curl-like HTTP client CLI tool"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+reqwest = { version = "0.12", features = ["default"] }
+tokio = { version = "1", features = ["full"] }
+
+[dev-dependencies]
+wiremock = "0.6"
