@@ -1,26 +1,29 @@
 # OpenCode 与本仓库
 
-## 你要的「落地」结果
+## OpenCode 侧交付物与约定
+
+本目录及根配置在仓库中的职责如下；阶段定义的**权威源**为 [`skill/`](../skill/)。
 
 1. **`opencode.json`**（仓库根）  
    - `instructions`：注入 [`skill/SKILL.md`](../skill/SKILL.md)（流水线索引、状态机、目录约定）。  
-   - `permission.skill["*"]: allow`：允许代理按需加载各阶段 skill。
+   - `permission.skill["*"]: allow`：允许代理按需通过 `skill` 工具加载各阶段定义。
 
 2. **`.opencode/skills/<name>/SKILL.md`**  
-   与 [OpenCode Skills 文档](https://open-code.ai/en/docs/skills) 一致：目录名必须等于 frontmatter 里的 `name`。本仓库的**权威定义**仍在根目录 [`skill/`](../skill/)；此处为**镜像**，供 `skill` 工具列举与按名加载。
+   与 [OpenCode Skills 文档](https://open-code.ai/en/docs/skills) 一致：目录名须与 frontmatter 中的 `name` 相同。  
+   本路径为**生成镜像**，供 OpenCode 列举与按名加载；编辑请改 [`skill/<name>/SKILL.md`](../skill/) 后运行同步脚本。
 
-3. **同步脚本（修改 skill 后必跑）**  
-   - 仅 OpenCode: `scripts/sync-opencode-skills.ps1` / `.sh`  
-   - **Cursor + OpenCode 一次更新**: `scripts/sync-ide-mirrors.ps1` / `.sh`  
-   然后在 git 中提交 `.opencode/skills/`（及如已更新的 `.cursor/skills/`）。
+3. **同步脚本**（修改 `skill/` 后须执行并提交镜像）  
+   - 仅 OpenCode：`scripts/sync-opencode-skills.ps1` / `.sh`  
+   - Cursor 与 OpenCode 一并更新：`scripts/sync-ide-mirrors.ps1` / `.sh`  
+   将变更纳入版本控制：`.opencode/skills/`（及如有更新的 `.cursor/skills/`）。
 
-## 实战最小步骤
+## 推荐工作流（最小步骤）
 
-1. 在仓库根打开 OpenCode（工作区 cwd 在 git 仓库内）。  
-2. 新 run：让代理加载 `run-init`，按 [`skill/run-init/SKILL.md`](../skill/run-init/SKILL.md) 提供 `run_id`、`design_doc`、`name`、`objective`。  
-3. 不确定进度：加载 `run-status`，传入 `state.md` 路径。  
-4. 按索引顺序：`design-intake` → `design-normalize` → `design-to-plan` → `plan-to-slices` → `slice-implement` / `slice-verify`（循环）→ `integration-verify` → `result-curate`。  
-5. 可选：编辑 `.workflow/runs/<run-id>/run-brief.md` 约束本次范围（见 `run-init` 模板）。
+1. 在仓库根目录启动 OpenCode（工作目录位于本 git 仓库内）。  
+2. 新建运行：加载 `run-init`，并按 [`skill/run-init/SKILL.md`](../skill/run-init/SKILL.md) 提供 `run_id`、`design_doc`、`name`、`objective`。  
+3. 仅查询进度、不推进阶段时：加载 `run-status`，并提供 `state.md` 路径。  
+4. 阶段顺序（与总索引一致）：`design-intake` → `design-normalize` → `design-to-plan` → `plan-to-slices` → `slice-implement` / `slice-verify`（迭代）→ `integration-verify` → `result-curate`。  
+5. 可选：按 `run-init` 模板编辑 `.workflow/runs/<run-id>/run-brief.md`，约束本次运行范围。
 
 ## 与 `skill/` 的关系
 
