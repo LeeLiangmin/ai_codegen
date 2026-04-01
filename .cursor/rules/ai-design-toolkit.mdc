@@ -1,0 +1,26 @@
+---
+description: Design-driven implementation toolkit — use when running the pipeline in Cursor
+globs:
+alwaysApply: false
+---
+
+# Design-driven implementation (Cursor)
+
+Canonical docs: repo root [`AGENTS.md`](../../AGENTS.md). Narrative: [`skill/README.md`](../../skill/README.md).
+
+## Cursor-native layout
+
+- **Project skills** (same bodies as `skill/<name>/`): [`.cursor/skills/<name>/SKILL.md`](../skills/) — attach in chat or let the agent open by path when executing a stage.
+- **Slash commands** (optional shortcuts): [`.cursor/commands/`](../commands/) — e.g. run-init / run-status prompts.
+- **Mirrors**: After editing [`skill/`](../../skill/), run `scripts/sync-cursor-skills.ps1` (or `sync-ide-mirrors.ps1` to refresh both Cursor and OpenCode), then commit `.cursor/skills/`.
+
+## Execution order
+
+1. Read [`skill/SKILL.md`](../../skill/SKILL.md) for the pipeline diagram and state machine.
+2. Run stages in order: `run-init` → `design-intake` → `design-normalize` → `design-to-plan` → `plan-to-slices` → (`slice-implement` ↔ `slice-verify`)\* → `integration-verify` → `result-curate`.
+3. Resume: use `run-status` with `.workflow/runs/<run-id>/state.md`.
+4. Optional per-run scope: `.workflow/runs/<run-id>/run-brief.md` (see `run-init`).
+
+## Registry
+
+[`skill/manifest.json`](../../skill/manifest.json) lists skill names and outputs.
