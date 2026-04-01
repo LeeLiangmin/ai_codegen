@@ -16,7 +16,7 @@ Canonical docs: repo root [`AGENTS.md`](../../AGENTS.md). Narrative: [`skill/REA
 
 ## Execution order
 
-1. Read [`skill/SKILL.md`](../../skill/SKILL.md) for the pipeline diagram and state machine.
+1. Read [`skill/SKILL.md`](../../skill/SKILL.md) for the pipeline diagram and state machine. For a **lite** merged flow (weaker models / small scope), read [`skill/SKILL-LITE.md`](../../skill/SKILL-LITE.md) first.
 2. Run stages in order: `run-init` → `design-intake` → `design-normalize` → `design-to-plan` → `plan-to-slices` → (`slice-implement` ↔ `slice-verify`)\* → `integration-verify` → `result-curate`.
 3. Resume: use `run-status` with `.workflow/runs/<run-id>/state.md`.
 4. Optional per-run scope: `.workflow/runs/<run-id>/run-brief.md` (see `run-init`).

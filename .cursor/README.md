@@ -12,7 +12,7 @@
    默认 `alwaysApply: false`。若在本仓库中持续使用设计驱动流水线，可将该文件中的 `alwaysApply` 设为 `true`，或在对话中通过 **@ai-design-toolkit** 显式引用。
 
 3. **流程总索引**（必读）  
-   [`skill/SKILL.md`](../skill/SKILL.md)：流水线阶段、状态机与目录约定。
+   [`skill/SKILL.md`](../skill/SKILL.md)：阶段表与顺序；[`skill/SKILL-LITE.md`](../skill/SKILL-LITE.md)：五步合并版（弱模型优先）。
 
 ## 同步脚本（改 `skill/` 后执行）
 

@@ -1,6 +1,10 @@
 {
   "version": "1",
-  "description": "Machine-readable registry of design-to-code pipeline skills (paths relative to skill/). Primary consumer: OpenCode + repo AGENTS.md / opencode.json instructions.",
+  "description": "Registry of design-to-code pipeline skills (paths relative to skill/). Umbrella: SKILL.md; lite entry: SKILL-LITE.md. Sync mirrors after edits.",
+  "lite": {
+    "path": "SKILL-LITE.md",
+    "note": "Five-step merged pipeline for small scope or weaker models; same artifacts as full pipeline but fewer stage boundaries."
+  },
   "skills": [
     {
       "name": "run-status",

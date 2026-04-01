@@ -5,7 +5,7 @@
 本目录及根配置在仓库中的职责如下；阶段定义的**权威源**为 [`skill/`](../skill/)。
 
 1. **`opencode.json`**（仓库根）  
-   - `instructions`：注入 [`skill/SKILL.md`](../skill/SKILL.md)（流水线索引、状态机、目录约定）。  
+   - `instructions`：注入 [`skill/SKILL.md`](../skill/SKILL.md) 与 [`skill/SKILL-LITE.md`](../skill/SKILL-LITE.md)（索引、轻量五步、目录约定）。  
    - `permission.skill["*"]: allow`：允许代理按需通过 `skill` 工具加载各阶段定义。
 
 2. **`.opencode/skills/<name>/SKILL.md`**  

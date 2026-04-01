@@ -2,7 +2,8 @@
   "$schema": "https://opencode.ai/config.json",
   "instructions": [
     "skill/SKILL.md",
-    "OpenCode skill tool: stage skills are mirrored under .opencode/skills/<name>/ (sync from skill/ via scripts/sync-opencode-skills.ps1 or scripts/sync-opencode-skills.sh). Load a stage with the skill tool using the YAML `name` (e.g. run-init, design-intake). The umbrella index is this instruction file skill/SKILL.md — do not duplicate it under .opencode/skills."
+    "skill/SKILL-LITE.md",
+    "OpenCode skill tool: stage skills are mirrored under .opencode/skills/<name>/ (sync from skill/ via scripts/sync-opencode-skills.ps1 or scripts/sync-opencode-skills.sh). Load a stage with the skill tool using the YAML `name` (e.g. run-init, design-intake). Umbrella: skill/SKILL.md; lite merged flow: skill/SKILL-LITE.md — do not duplicate those under .opencode/skills."
   ],
   "permission": {
     "skill": {
