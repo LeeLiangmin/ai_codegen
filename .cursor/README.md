@@ -12,7 +12,7 @@
    默认 `alwaysApply: false`。若在本仓库中持续使用设计驱动流水线，可将该文件中的 `alwaysApply` 设为 `true`，或在对话中通过 **@ai-design-toolkit** 显式引用。
 
 3. **流程总索引**（必读）  
-   [`skill/SKILL.md`](../skill/SKILL.md)：流水线阶段、状态机与目录约定。
+   [`skill/SKILL.md`](../skill/SKILL.md)：三层模型、流水线图、最小状态模型与目录约定。
 
 ## 同步脚本（改 `skill/` 后执行）
 
@@ -41,16 +41,16 @@ bash scripts/sync-cursor-skills.sh
 ## 在 Cursor 中的使用方式
 
 1. 以本仓库根目录作为工作区打开。  
-2. 在 Chat / Agent 中声明当前流水线阶段，或 **附加** `@.cursor/skills/run-init/SKILL.md`（或其它阶段 skill）以按步骤执行。  
-3. 需查询进度而不推进阶段时：附加 `@.cursor/skills/run-status/SKILL.md`，并提供 `.workflow/runs/<run-id>/state.md` 路径。  
-4. 可选：按 `run-init` 模板编辑 `.workflow/runs/<run-id>/run-brief.md`，约束本次运行范围。
+2. 在 Chat / Agent 中附加对应 skill，例如 `@.cursor/skills/design-check/SKILL.md` 以按步骤执行。  
+3. **核心闭环**：`design-check` → `design-to-slices` → `slice-implement` ↔ `slice-verify`（迭代直到所有切片通过）。  
+4. 需查询进度而不推进流程时：附加 `@.cursor/skills/run-status/SKILL.md`，并提供 `.workflow/session/state.md` 路径。  
+5. **扩展层**（按需）：`integration-verify` → `result-curate`。
 
 ## 与 OpenCode 的对照
 
 | 环境 | 镜像路径 |
-|------|-----------|
+|------|----------|
 | OpenCode | `.opencode/skills/<name>/SKILL.md` |
 | Cursor | `.cursor/skills/<name>/SKILL.md` |
-| 权威源 | `skill/<name>/SKILL.md` |
 
-项目入口说明仍见根目录 [`AGENTS.md`](../AGENTS.md)。
+两者内容一致，均由 `scripts/sync-ide-mirrors.*` 从 `skill/` 生成。

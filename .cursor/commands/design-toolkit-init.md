@@ -1,5 +1,5 @@
 ---
-description: Start a new design-driven run (run-init)
+description: Start a new design-driven session (run-init)
 ---
 
-Follow `.cursor/skills/run-init/SKILL.md`. Ask the user for run_id, design_doc path under `.workflow/docs/design/`, name, and objective; then create `.workflow/runs/<run-id>/` layout (including `stages/*/` and `slices/`), `state.md`, and `run-brief.md` per the skill.
+Follow `.cursor/skills/run-init/SKILL.md`. Ask the user for design_doc path and objective; then create `.workflow/session/` layout (including `slices/` and `verify/`), `state.md`, and optional `context.md` per the skill.

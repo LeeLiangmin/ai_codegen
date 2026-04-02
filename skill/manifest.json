@@ -1,93 +1,87 @@
 {
-  "version": "1",
-  "description": "Machine-readable registry of design-to-code pipeline skills (paths relative to skill/). Primary consumer: OpenCode + repo AGENTS.md / opencode.json instructions.",
+  "version": "2",
+  "description": "Machine-readable registry of the design-to-code pipeline skills (paths relative to skill/). The system uses a minimal slice loop: design-check → design-to-slices → slice-implement ↔ slice-verify.",
+  "layers": {
+    "core": ["design-check", "design-to-slices", "slice-implement", "slice-verify"],
+    "infra": ["run-init", "run-status"],
+    "extensions": ["integration-verify", "result-curate"]
+  },
   "skills": [
     {
-      "name": "run-status",
-      "path": "run-status/SKILL.md",
+      "name": "design-check",
+      "path": "design-check/SKILL.md",
+      "layer": "core",
       "predecessors": [],
       "primaryOutputs": [
-        "(optional) .workflow/runs/<run-id>/stages/plan/run-status.md"
+        ".workflow/session/design-check.md"
       ]
     },
     {
-      "name": "run-init",
-      "path": "run-init/SKILL.md",
-      "predecessors": [],
+      "name": "design-to-slices",
+      "path": "design-to-slices/SKILL.md",
+      "layer": "core",
+      "predecessors": ["design-check"],
       "primaryOutputs": [
-        ".workflow/runs/<run-id>/state.md",
-        ".workflow/runs/<run-id>/run-brief.md",
-        ".workflow/runs/<run-id>/slices/",
-        ".workflow/runs/<run-id>/stages/intake/",
-        ".workflow/runs/<run-id>/stages/normalize/",
-        ".workflow/runs/<run-id>/stages/plan/",
-        ".workflow/runs/<run-id>/stages/implement-verify/",
-        ".workflow/runs/<run-id>/stages/integrate/",
-        ".workflow/runs/<run-id>/stages/curate/"
-      ]
-    },
-    {
-      "name": "design-intake",
-      "path": "design-intake/SKILL.md",
-      "predecessors": ["run-init"],
-      "primaryOutputs": [".workflow/runs/<run-id>/stages/intake/intake-report.md"]
-    },
-    {
-      "name": "design-normalize",
-      "path": "design-normalize/SKILL.md",
-      "predecessors": ["design-intake"],
-      "primaryOutputs": [
-        ".workflow/docs/design/<name>.normalized.md",
-        ".workflow/runs/<run-id>/stages/normalize/normalization-report.md",
-        ".workflow/runs/<run-id>/stages/normalize/unresolved-items.md"
-      ]
-    },
-    {
-      "name": "design-to-plan",
-      "path": "design-to-plan/SKILL.md",
-      "predecessors": ["design-normalize"],
-      "primaryOutputs": [
-        ".workflow/docs/implementation-plan/<name>-implementation-plan.md",
-        ".workflow/docs/implementation-plan/backlog.md",
-        ".workflow/docs/implementation-plan/risks.md"
-      ]
-    },
-    {
-      "name": "plan-to-slices",
-      "path": "plan-to-slices/SKILL.md",
-      "predecessors": ["design-to-plan"],
-      "primaryOutputs": [
-        ".workflow/runs/<run-id>/slices/index.md",
-        ".workflow/runs/<run-id>/slices/slice-<NNN>.md"
+        ".workflow/session/slices/index.md",
+        ".workflow/session/slices/slice-<NNN>.md"
       ]
     },
     {
       "name": "slice-implement",
       "path": "slice-implement/SKILL.md",
-      "predecessors": ["plan-to-slices"],
+      "layer": "core",
+      "predecessors": ["design-to-slices"],
       "primaryOutputs": ["repository code and tests per slice scope"]
     },
     {
       "name": "slice-verify",
       "path": "slice-verify/SKILL.md",
+      "layer": "core",
       "predecessors": ["slice-implement"],
-      "primaryOutputs": [".workflow/runs/<run-id>/stages/implement-verify/slice-<NNN>-verification-report.md"]
+      "primaryOutputs": [
+        ".workflow/session/verify/slice-<NNN>-verify.md"
+      ]
+    },
+    {
+      "name": "run-init",
+      "path": "run-init/SKILL.md",
+      "layer": "infra",
+      "predecessors": [],
+      "primaryOutputs": [
+        ".workflow/session/state.md",
+        ".workflow/session/context.md",
+        ".workflow/session/slices/",
+        ".workflow/session/verify/"
+      ]
+    },
+    {
+      "name": "run-status",
+      "path": "run-status/SKILL.md",
+      "layer": "infra",
+      "predecessors": [],
+      "primaryOutputs": [
+        "(read-only status summary, no file output by default)"
+      ]
     },
     {
       "name": "integration-verify",
       "path": "integration-verify/SKILL.md",
+      "layer": "extensions",
       "predecessors": ["slice-verify"],
-      "primaryOutputs": [".workflow/runs/<run-id>/stages/integrate/integration-report.md"]
+      "primaryOutputs": [
+        ".workflow/session/integration-report.md"
+      ]
     },
     {
       "name": "result-curate",
       "path": "result-curate/SKILL.md",
+      "layer": "extensions",
       "predecessors": ["integration-verify"],
       "primaryOutputs": [
-        ".workflow/runs/<run-id>/stages/curate/traceability-matrix.md",
-        ".workflow/runs/<run-id>/stages/curate/deviations-summary.md",
-        ".workflow/runs/<run-id>/stages/curate/final-index.md",
-        ".workflow/runs/<run-id>/stages/curate/next-iteration-context.md"
+        ".workflow/session/traceability-matrix.md",
+        ".workflow/session/deviations-summary.md",
+        ".workflow/session/final-index.md",
+        ".workflow/session/next-iteration-context.md"
       ]
     }
   ]

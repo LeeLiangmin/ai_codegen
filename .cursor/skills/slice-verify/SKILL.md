@@ -1,94 +1,164 @@
 ---
 name: slice-verify
-description: Use when a slice is implemented and you need design-consistency checks, lint, typecheck, tests, and a written verification report with pass or fail
+description: Use when one slice has been implemented and you need the smallest reliable verification loop: check design alignment, run the necessary automated checks, and return a single pass/fail result with the next action
 ---
 
 # slice-verify
 
 ## Overview
 
-对单个切片执行设计一致性检查和自动化验证，确保实现质量达标。验证范围涵盖设计一致性、代码格式、静态分析、类型检查和单元测试。
+`slice-verify` 是核心闭环中的验证步。
+
+它的职责也被压缩到最小：**验证一个切片是否通过，不负责验证整个项目。**
+
+与旧版本相比，它不再默认追求厚重验证报告，而是以最小可靠结论为目标：
+- 当前切片是否符合设计与边界
+- 当前切片的必要自动化检查是否通过
+- 下一步是继续、修复，还是阻塞
+
+---
 
 ## When to Use
 
-切片实现完成后，进入验证阶段。
+在以下场景使用：
 
-**前置条件：**
-- 切片 status 为 `implemented`
-- 切片对应的代码改动和测试改动已就绪
+- 一个切片已完成实现
+- 需要对当前切片做局部验证
+- 需要为是否进入下一个切片提供明确判断
+
+它通常发生在 [slice-implement/SKILL.md](../slice-implement/SKILL.md) 之后。
+
+---
 
 ## Input
 
-| 输入项 | 路径 / 来源 | 说明 |
-| --- | --- | --- |
-| 切片定义 | `.workflow/runs/<run-id>/slices/slice-<NNN>.md` | 切片目标、边界和验收标准 |
-| 代码改动 | git diff 或文件列表 | 切片实现产生的所有变更 |
-| 测试改动 | 对应测试文件 | 切片新增或修改的测试 |
-| 规范化设计稿 | `.workflow/docs/design/<name>.normalized.md` | 设计一致性检查参考 |
-| 运行状态 | `.workflow/runs/<run-id>/state.md` | 当前 run 的全局状态 |
+| 输入项 | 必填 | 说明 |
+|---|---|---|
+| 当前切片定义 | 是 | 当前切片的目标、边界、验证方式 |
+| 当前代码改动 | 是 | 本切片的实际改动范围 |
+| 设计文档 | 建议 | 用于核对接口、结构、命名和约束 |
+| 测试改动 | 否 | 当前切片对应的新增或修改测试 |
+| 会话状态 | 否 | 用于读取当前切片与最近状态 |
+
+---
 
 ## Procedure
 
-1. **读取切片定义和关联设计章节**：明确该切片的目标、接口定义、数据结构和验收标准。
-2. **收集代码改动**：通过 git diff 或文件比对，获取切片实现的所有代码改动清单。
-3. **设计一致性检查**：
-   - 实现是否覆盖切片定义中的所有目标
-   - 接口签名是否与设计一致（函数名、参数类型、返回值类型）
-   - 数据结构是否与设计一致（字段名、类型、约束）
-   - 是否存在未授权的功能扩展（超出切片 scope 的新增功能）
-   - 命名是否符合设计约定和项目风格
-4. **格式检查**：执行项目的格式化工具验证代码风格一致性。
-   - 示例：`cargo fmt --check`、`prettier --check`、`gofmt -l`、`black --check` 等
-5. **静态检查**：执行 linter 检查潜在问题。
-   - 示例：`cargo clippy`、`eslint`、`golint`、`pylint` 等
-6. **类型检查**：执行编译或类型检查确保类型安全。
-   - 示例：`cargo build`、`tsc --noEmit`、`mypy` 等
-7. **单元测试**：执行与切片相关的测试，确保功能正确。
-   - 优先运行切片直接关联的测试；若无法精确定位则运行全量测试
-8. **契约测试**（如适用）：验证接口契约是否满足上下游约定。
-9. **汇总检查结果**：收集以上所有检查步骤的输出，分类记录通过项和失败项。
-10. **生成验证报告**：将检查结果写入结构化的验证报告（见 § Template）。
-11. **判定结果**：根据质量门禁标准判定 `passed` 或 `failed`。
-12. **更新状态**：更新切片 status（`verified` 或 `failed`）和 `state.md`。
+1. **读取切片定义**
+   明确：
+   - 当前切片目标
+   - 允许修改范围
+   - 禁止修改范围
+   - 验证要求
+
+2. **检查边界一致性**
+   先判断当前改动是否仍在切片边界内：
+   - 是否修改了未授权区域
+   - 是否新增了与切片无关的功能
+   - 是否偏离了切片的单一目标
+
+3. **检查设计一致性**
+   根据设计文档和切片定义，检查：
+   - 接口签名是否一致
+   - 数据结构是否一致
+   - 命名和行为是否与目标一致
+   - 是否遗漏切片要求中的关键行为
+
+4. **执行最小必要自动化检查**
+   只运行当前切片所需、且项目上下文允许的检查，例如：
+   - 格式检查
+   - lint
+   - 类型检查 / 编译
+   - 当前切片相关测试
+
+   原则是：
+   - 优先局部检查
+   - 必要时再扩大到更广范围
+   - 不默认把“全仓全量检查”作为首选
+
+5. **汇总为单一结论**
+   只给出以下三种结论之一：
+   - `pass`：当前切片可视为完成
+   - `fail`：需要回到 [slice-implement/SKILL.md](../slice-implement/SKILL.md) 修复
+   - `blocked`：存在无法在当前切片内解决的问题
+
+6. **给出单一下一步动作**
+   输出时只给一个下一步：
+   - 继续下一个切片
+   - 回到当前切片修复
+   - 回到切片定义重新拆分或调整边界
+
+7. **按需写入轻量结果**
+   如使用会话目录，可写入：
+   - `.workflow/session/verify/slice-<NNN>-verify.md`
+
+   但只记录最小信息，不展开为厚报告。
+
+---
 
 ## Output
 
-| 输出项 | 路径 | 条件 |
-| --- | --- | --- |
-| 验证报告 | `.workflow/runs/<run-id>/stages/implement-verify/slice-<NNN>-verification-report.md` | 始终产出 |
-| 失败检查清单 | `.workflow/runs/<run-id>/stages/implement-verify/slice-<NNN>-failed-checks.md` | 存在失败项时产出 |
-| 修复建议 | `.workflow/runs/<run-id>/stages/implement-verify/slice-<NNN>-remediation-suggestions.md` | 存在失败项时产出 |
-| 更新后状态 | `.workflow/runs/<run-id>/state.md` | 始终更新 |
+### 最小输出
+
+- `slice_id`
+- `boundary_check`
+- `design_alignment`
+- `automated_checks`
+- `result`
+- `next_step`
+
+### 建议文件输出
+
+- `.workflow/session/verify/slice-<NNN>-verify.md`
+
+建议结构：
+
+```markdown
+# Slice Verify
+
+- slice_id: slice-001
+- boundary_check: pass | fail
+- design_alignment: pass | fail
+- automated_checks: pass | fail | partial
+- result: pass | fail | blocked
+- next_step: <...>
+
+## Notes
+- ...
+```
+
+---
 
 ## Quality Gate
 
-| 检查项 | 通过标准 | 备注 |
-| --- | --- | --- |
-| 设计一致性检查 | 所有必要项通过 | 接口、数据结构、命名均与设计一致 |
-| 格式检查 | 通过 | 无格式违规 |
-| 静态检查 | 无 error | warning 可接受但需记录 |
-| 类型检查 / 编译 | 通过 | 无编译错误 |
-| 单元测试 | 全部通过 | 包括新增和既有测试 |
+- [ ] 已检查当前改动是否越界
+- [ ] 已检查当前实现是否符合切片目标
+- [ ] 已执行最小必要自动化检查
+- [ ] 已给出唯一明确结论：`pass` / `fail` / `blocked`
+- [ ] 已给出唯一明确下一步动作
 
-**判定标准：** 以上所有项通过 → `verified`；任一项失败 → `failed`。
+---
 
 ## Failure Handling
 
-| 失败场景 | 处理方式 |
-| --- | --- |
-| **格式 / 静态检查失败** | 尝试自动修复（如 `cargo fmt`、`prettier --write`），修复后重新验证，最多自动重试 2 次 |
-| **类型检查 / 编译失败** | 回到 `slice-implement` 修复类型错误或编译错误 |
-| **单元测试失败** | 分析失败原因（实现缺陷 vs 测试问题），回到 `slice-implement` 修复 |
-| **设计一致性失败** | 记录偏差详情，判断是否可接受：可接受则标记为 `accepted deviation` 并通过；不可接受则回到 `slice-implement` |
-| **反复失败（≥ 3 次）** | 升级为人工处理，在报告中标注 `escalated`，停止自动重试 |
+| 场景 | 处理方式 |
+|---|---|
+| 越界修改 | 判定为 `fail`，回到 [slice-implement/SKILL.md](../slice-implement/SKILL.md) 收缩改动 |
+| 设计不一致 | 判定为 `fail`，要求按切片目标修正 |
+| 测试失败 | 判定为 `fail`，回到实现步修复 |
+| 当前切片本身定义不合理 | 判定为 `blocked`，回到 [design-to-slices/SKILL.md](../design-to-slices/SKILL.md) 重拆 |
+| 环境原因导致无法验证 | 判定为 `blocked`，明确环境阻塞，不伪造通过 |
 
-## Template
+---
 
-验证报告写入 `.workflow/runs/<run-id>/stages/implement-verify/slice-<NNN>-verification-report.md`。
+## Non-Goals
 
-报告结构：
-- 切片标识与验证时间
-- 设计一致性检查结果
-- 自动化检查结果（格式 / lint / 类型 / 测试）
-- 总体结论（pass / fail）
-- 失败项明细与修复建议（如有）
+以下内容不属于本 skill：
+
+- 不执行全项目集成验证
+- 不整理最终归档材料
+- 不维护复杂验证报告体系
+- 不替代人工产品验收
+- 不自动处理多个切片的调度
+
+当前切片通过后，可继续进入下一个切片的 [slice-implement/SKILL.md](../slice-implement/SKILL.md)；若多个切片都已通过，且确有需要，再进入 [integration-verify/SKILL.md](../integration-verify/SKILL.md)。

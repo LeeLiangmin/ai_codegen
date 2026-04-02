@@ -1,80 +1,148 @@
 ---
 name: slice-implement
-description: Use when a slice definition exists, dependencies are satisfied, and you need code and tests strictly within the slice's allowed modification scope
+description: Use when one slice is clearly defined and you need to implement only that slice, inside its allowed boundary, with the smallest necessary code and test changes
 ---
 
 # slice-implement
 
 ## Overview
 
-针对单个切片，在受控范围内完成代码实现，包括业务代码、测试代码和配置文件。确保实现严格遵循切片定义的边界，不越界修改，不扩展未授权功能。
+`slice-implement` 是核心闭环中的执行步。
+
+它的职责被压缩为一句话：**只实现一个切片，不扩张范围，不顺手解决其他问题。**
+
+与旧体系相比，本版本删除了大量额外治理要求：
+- 不要求生成复杂实现说明文档
+- 不默认生成偏差报告文件
+- 不承担全局流程推进职责
+- 不维护复杂切片总表
+
+它关注的唯一目标是：让当前切片进入“可验证”状态。
+
+---
 
 ## When to Use
 
-切片定义文档已生成，准备进入编码实现阶段。
+在以下场景使用：
 
-**前置条件：**
-- 切片 status 为 `pending` 或 `blocked` 已解除
-- 所有前置依赖切片（`depends_on` 中列出的切片）已完成（status 为 `verified`）
-- 规范化设计稿和实现计划可访问
+- 已存在一个清晰的切片定义
+- 切片边界已明确
+- 当前切片前置依赖已满足，或无依赖
+- 准备进行最小实现并随后交给 [slice-verify/SKILL.md](../slice-verify/SKILL.md)
+
+通常来源于 [design-to-slices/SKILL.md](../design-to-slices/SKILL.md) 输出的单切片文件。
+
+---
 
 ## Input
 
-| 输入项 | 路径 / 来源 | 说明 |
-| --- | --- | --- |
-| 当前切片定义 | `.workflow/runs/<run-id>/slices/slice-<NNN>.md` | 包含目标、边界、允许修改范围 |
-| 规范化设计稿 | `.workflow/docs/design/<name>.normalized.md` | 关联设计章节参考 |
-| 仓库现有代码 | 项目代码库 | 理解当前代码结构和上下文 |
-| 运行状态 | `.workflow/runs/<run-id>/state.md` | 当前 run 的全局状态 |
-| run-brief | `.workflow/runs/<run-id>/run-brief.md` | 可选。有实质内容时与切片边界一起作为硬约束，不得扩展至 brief 非目标 |
+| 输入项 | 必填 | 说明 |
+|---|---|---|
+| 切片定义 | 是 | 当前切片的目标、边界、依赖、验证方式 |
+| 设计文档 | 建议 | 用于核对接口、数据结构、命名与约束 |
+| 现有代码上下文 | 是 | 理解当前仓库结构与允许修改的文件 |
+| 会话状态 | 否 | 用于确认当前切片与阻塞信息 |
+
+---
 
 ## Procedure
 
-1. **读取切片定义文档**：确认切片目标（`objective`）、输入依据（`input_refs`）和实现边界（`scope`，包括允许修改范围和禁止修改范围）。
-2. **读取 run-brief（可选）**：若存在且含实质内容，确认本切片未违反其硬约束与非目标；若有疑问，标记 `blocked` 并记录原因。
-3. **检查前置依赖**：验证 `depends_on` 中列出的所有前置切片 status 均为 `verified`。若不满足，标记为 `blocked` 并停止。
-4. **阅读关联设计章节**：从规范化设计稿中定位切片引用的设计章节，理解设计意图、接口定义和数据结构。
-5. **阅读现有代码上下文**：浏览切片允许修改范围涉及的文件和目录，理解当前代码结构、命名风格和依赖关系。
-6. **确认修改范围**：明确列出允许修改的文件/模块和禁止修改的文件/模块，作为实现过程中的硬约束。
-7. **实现业务代码**：按设计要求生成或修改业务代码。严格遵循设计稿中的接口签名、数据结构和命名约定。
-8. **补齐单元测试**：为新增或修改的代码编写对应的单元测试，覆盖正常路径和关键异常路径。
-9. **更新配置文件**：如切片涉及配置变更（依赖声明、环境配置等），同步更新相关配置文件。
-10. **记录实现决策**：将实现过程中的重要决策写入 `implementation-notes`（如：为何选择某种实现方式、性能考量等）。
-11. **记录偏差**：如发现实际实现与设计存在不一致之处，写入 `deviation` 记录，说明偏差内容和原因。
-12. **处理阻塞情况**：如遇设计冲突、依赖缺失或边界外问题，立即停止实现，标记切片为 `blocked`，记录阻塞原因。
-13. **更新切片状态**：将切片 status 从 `running` 更新为 `implemented`。
-14. **更新 state.md**：同步更新 run 的全局状态文件，反映当前切片进展。
+1. **读取当前切片定义**
+   先明确以下内容：
+   - `objective`
+   - `depends_on`
+   - `allowed_changes`
+   - `forbidden_changes`
+   - `expected_outputs`
+   - `verification`
+
+2. **确认依赖是否满足**
+   如果切片有直接依赖，只检查直接前置项：
+   - 前置切片是否已完成并通过验证
+   - 如果未满足，则停止，不进入实现
+
+3. **确认修改边界**
+   在编码前明确：
+   - 哪些文件/目录允许修改
+   - 哪些文件/目录明确禁止修改
+   - 是否允许新增测试
+
+4. **执行最小实现**
+   只完成当前切片的目标：
+   - 生成或修改业务代码
+   - 补充当前切片所必需的测试
+   - 如确有必要，更新最小范围配置
+
+5. **避免范围扩张**
+   实现过程中若发现以下情况，默认停止并记录为阻塞，而不是顺手继续：
+   - 需要跨多个无关模块大改
+   - 需要改变切片未授权的接口契约
+   - 需要修复与当前切片无关的问题
+   - 需要补做新的设计决策
+
+6. **准备交付验证**
+   完成后，确保当前切片已具备进入 [slice-verify/SKILL.md](../slice-verify/SKILL.md) 的最小条件：
+   - 代码可读
+   - 改动集中
+   - 测试已补齐到必要程度
+   - 未越界修改
+
+7. **最小状态更新（如使用会话状态）**
+   如存在 `state.md`，只更新必要信息，例如：
+   - `current_slice`
+   - `status` 保持 `active`
+   - 不写复杂阶段迁移
+
+---
 
 ## Output
 
-| 输出项 | 路径 | 条件 |
-| --- | --- | --- |
-| 代码改动 | 切片允许范围内的文件 | 始终产出 |
-| 测试改动 | 对应测试文件 | 始终产出 |
-| 实现决策记录 | `.workflow/runs/<run-id>/stages/implement-verify/slice-<NNN>-implementation-notes.md` | 如有决策记录 |
-| 偏差记录 | `.workflow/runs/<run-id>/stages/implement-verify/slice-<NNN>-deviation.md` | 如有偏差 |
-| 更新后状态 | `.workflow/runs/<run-id>/state.md` | 始终更新 |
+### 必需输出
+
+- 当前切片边界内的代码改动
+- 当前切片所需的最小测试改动
+
+### 可选输出
+
+如果确实出现阻塞或必要说明，可在会话目录中增加轻量记录，例如：
+- `.workflow/session/summary.md`
+- `.workflow/session/slices/slice-<NNN>-notes.md`
+
+但这些都不是默认要求。
+
+---
 
 ## Quality Gate
 
-- [ ] 所有代码改动都在切片定义的允许修改范围内
-- [ ] 不存在超出切片边界的修改
-- [ ] 新增代码有对应的单元测试
-- [ ] 代码可编译 / 可解析（基本语法正确）
-- [ ] 实现与设计章节描述一致（接口签名、数据结构、命名）
-- [ ] 切片 status 已正确更新为 `implemented`
+- [ ] 只实现了一个切片
+- [ ] 所有改动都落在允许范围内
+- [ ] 未修改禁止修改区域
+- [ ] 当前切片所需的最小测试已补充
+- [ ] 未引入明显与当前切片无关的扩展功能
+- [ ] 已具备进入 [slice-verify/SKILL.md](../slice-verify/SKILL.md) 的条件
+
+---
 
 ## Failure Handling
 
-| 失败场景 | 处理方式 |
-| --- | --- |
-| **设计冲突** | 停止实现，在 `deviation` 中记录冲突详情，标记切片为 `blocked`，建议人工决策 |
-| **依赖不满足** | 检查前置切片完成状态，标记为 `blocked`，记录具体缺失的依赖切片 |
-| **改动越界** | 回退越界改动，重新审视切片边界；如边界定义不合理，建议拆分为子切片 |
-| **实现复杂度超预期** | 记录在 `implementation-notes`，评估是否需要拆分当前切片为更细粒度的子切片 |
+| 场景 | 处理方式 |
+|---|---|
+| 前置依赖未满足 | 停止实现，等待依赖切片完成 |
+| 需要跨边界修改 | 停止实现，回到切片定义重新拆分或调整边界 |
+| 设计与代码现状冲突 | 记录冲突，优先保持切片边界，不擅自扩张任务 |
+| 当前切片过大 | 暂停实现，回到 [design-to-slices/SKILL.md](../design-to-slices/SKILL.md) 继续拆小 |
+| 实现中出现额外问题 | 仅记录，不自动顺手修复无关问题 |
 
-## Template
+---
 
-本 Skill 不生成文档模板，产出物为代码文件。
+## Non-Goals
 
-切片任务定义模板请参考 [plan-to-slices § Template](../plan-to-slices/SKILL.md#template)。
+以下内容不属于本 skill：
+
+- 不验证切片是否通过
+- 不运行全局集成验证
+- 不生成复杂偏差文档
+- 不维护全局流程状态机
+- 不整理最终交付索引
+
+当前切片实现完成后，下一步应进入 [slice-verify/SKILL.md](../slice-verify/SKILL.md)。

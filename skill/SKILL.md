@@ -1,171 +1,194 @@
 ---
 name: ai-design-toolkit
-description: Use when orienting to this repo's design-to-code pipeline, choosing which stage skill to run, or invoking the documented workflow from run-init through result-curate
+description: Use when operating this repo's rebuilt design-to-code system based on a minimal slice loop: check design, derive slices, implement one slice, verify one slice
 ---
 
 # AI Design-Driven Implementation Toolkit
 
 ## Overview
 
-本 Toolkit 通过 Skill 化流水线解决三大问题：持续代码生成、质量保障、成果沉淀；**默认给 OpenCode 使用**（仓库根 [`AGENTS.md`](../AGENTS.md)、[`opencode.json`](../opencode.json)）。每个 Skill 是一个独立可执行的指令单元，按顺序串联形成完整的设计→实现→验证→归档流程。目录结构遵循 [superpowers skills 约定](https://github.com/obra/superpowers/tree/main/skills)：`skill/<skill-name>/SKILL.md`，含 YAML frontmatter（`name`、`description`）。
+本 Toolkit 已按第一性原则重构：**默认围绕最小切片闭环工作，而不是围绕阶段文档工作**。
+
+核心目标只有三个：
+
+1. 让较弱能力的模型也能稳定推进
+2. 让每一步都可验证、可回退
+3. 让系统复杂度尽量留在结构中，而不是压给单次模型推理
+
+因此，主流程不再要求先生成大量中间报告，也不再以 `intake → normalize → plan → slices` 的厚流水线作为默认路径。新的默认路径是：
+
+```mermaid
+flowchart LR
+    A[design-check] --> B[design-to-slices]
+    B --> C[slice-implement]
+    C --> D[slice-verify]
+    D -->|pass| E{还有切片?}
+    E -->|yes| C
+    E -->|no| F[完成核心闭环]
+    D -->|fail| C
+```
+
+---
+
+## System Model
+
+Toolkit 现在分为三层：
+
+| Layer | Purpose | Default | Skills |
+|---|---|---|---|
+| Core | 最小可执行闭环 | 是 | `design-check`、`design-to-slices`、`slice-implement`、`slice-verify` |
+| Infra | 会话初始化与只读恢复 | 是 | `run-init`、`run-status` |
+| Extensions | 增强验证与归档沉淀 | 否 | `integration-verify`、`result-curate` |
+
+### 设计原则
+
+- **切片优先**：主资产是切片定义、代码改动、验证结果
+- **单一职责**：每个 skill 只做一种认知动作
+- **默认接受不完整输入**：设计不完整时先标风险，不自动扩张为文档治理链
+- **最小状态**：只记录恢复所必需的信息
+- **增强层可选**：集成验证与结果归档不是默认阻塞步骤
+
+---
 
 ## Skill Registry
 
+### Core
+
 | # | Skill | Path | Purpose | Primary Input | Primary Output |
-|---|-------|------|---------|---------------|----------------|
-| 1 | run-init | [run-init/SKILL.md](run-init/SKILL.md) | 初始化运行目录与状态文件 | 项目路径 | `.workflow/runs/<run-id>/state.md` |
-| 2 | design-intake | [design-intake/SKILL.md](design-intake/SKILL.md) | 验收设计文档结构完整性 | 设计文档 | intake 报告 (pass/fail) |
-| 3 | design-normalize | [design-normalize/SKILL.md](design-normalize/SKILL.md) | 归一化多源设计材料为结构化 Markdown | 原始设计 + 补充材料 | `<name>.normalized.md` |
-| 4 | design-to-plan | [design-to-plan/SKILL.md](design-to-plan/SKILL.md) | 设计文档转可执行实现计划 | 归一化设计文档 | 实现计划 + backlog + risks |
-| 5 | plan-to-slices | [plan-to-slices/SKILL.md](plan-to-slices/SKILL.md) | 实现计划拆分为最小可验证切片 | 实现计划 | 切片任务文件集 |
-| 6 | slice-implement | [slice-implement/SKILL.md](slice-implement/SKILL.md) | 执行单个切片的代码实现 | 切片定义 + 设计文档 | 业务代码 + 单元测试 |
-| 7 | slice-verify | [slice-verify/SKILL.md](slice-verify/SKILL.md) | 验证单个切片的实现质量 | 切片代码 + 验证标准 | 验证报告 (pass/fail) |
-| 8 | integration-verify | [integration-verify/SKILL.md](integration-verify/SKILL.md) | 验证多切片集成正确性 | 已验证切片集 | 集成验证报告 |
-| 9 | result-curate | [result-curate/SKILL.md](result-curate/SKILL.md) | 归档整理所有运行产出物 | 全部运行产出 | 追溯矩阵 + 交付索引 |
+|---|---|---|---|---|---|
+| 1 | design-check | [design-check/SKILL.md](design-check/SKILL.md) | 提取目标、约束、风险并判断是否足以开始切片 | 设计文档 | 轻量设计检查结果 |
+| 2 | design-to-slices | [design-to-slices/SKILL.md](design-to-slices/SKILL.md) | 直接把设计转换为最小可验证切片 | 设计文档 / design-check 结果 | 切片定义集合 |
+| 3 | slice-implement | [slice-implement/SKILL.md](slice-implement/SKILL.md) | 只实现一个切片，且严格遵守边界 | 单个切片定义 | 代码改动 + 必要测试 |
+| 4 | slice-verify | [slice-verify/SKILL.md](slice-verify/SKILL.md) | 对单个切片做一致性检查与自动验证 | 单个切片 + 代码改动 | pass/fail 验证结果 |
 
-### 工具 Skill（不推进流水线顺序）
-
-用于解读状态与续跑指引，**不改变** `state.md` 中的阶段进度（可选仅写 `stages/plan/run-status.md` 审计）。
+### Infra
 
 | Skill | Path | Purpose |
-|-------|------|---------|
-| run-status | [run-status/SKILL.md](run-status/SKILL.md) | 读取 `state.md`，输出摘要与建议下一步执行的 stage skill |
+|---|---|---|
+| run-init | [run-init/SKILL.md](run-init/SKILL.md) | 创建最小会话目录与极简状态文件 |
+| run-status | [run-status/SKILL.md](run-status/SKILL.md) | 读取极简状态并给出下一步建议 |
 
-断点恢复时：可先执行 `run-status`，再按建议打开对应 `skill/<name>/SKILL.md`。
+### Extensions
 
-## Pipeline Flow
+| Skill | Path | Purpose |
+|---|---|---|
+| integration-verify | [integration-verify/SKILL.md](integration-verify/SKILL.md) | 多切片通过后执行集成级验证 |
+| result-curate | [result-curate/SKILL.md](result-curate/SKILL.md) | 将本次会话整理为可复用资产 |
 
-```mermaid
-flowchart TD
-    A[run-init] --> B[design-intake]
-    B -->|pass| C[design-normalize]
-    B -->|fail| B1[补充设计文档后重试]
-    B1 --> B
-    C --> D[design-to-plan]
-    D --> E[plan-to-slices]
-    E --> F[slice-implement]
-    F --> G[slice-verify]
-    G -->|pass| H{还有未完成切片?}
-    G -->|fail| F1[修复后重新实现]
-    F1 --> F
-    H -->|yes| F
-    H -->|no| I[integration-verify]
-    I -->|pass| J[result-curate]
-    I -->|fail| I1[定位问题切片, 回退修复]
-    I1 --> F
-    J --> K[Done ✓]
+---
+
+## Core Flow
+
+### Step 0: 可选初始化
+
+如果需要显式会话目录与恢复点，先执行 [run-init/SKILL.md](run-init/SKILL.md)。
+
+### Step 1: 设计检查
+
+执行 [design-check/SKILL.md](design-check/SKILL.md)：
+- 读取设计文档
+- 提取目标、范围、约束
+- 标记缺失项与风险
+- 判断是否足以开始切片
+
+### Step 2: 直接拆切片
+
+执行 [design-to-slices/SKILL.md](design-to-slices/SKILL.md)：
+- 不先生成厚 implementation plan
+- 直接产出最小可验证切片
+- 每个切片都应具备目标、边界、依赖、验证方式
+
+### Step 3: 单切片实现
+
+执行 [slice-implement/SKILL.md](slice-implement/SKILL.md)。
+
+### Step 4: 单切片验证
+
+执行 [slice-verify/SKILL.md](slice-verify/SKILL.md)。
+
+### Step 5: 按需增强
+
+在需要时，再执行：
+- [integration-verify/SKILL.md](integration-verify/SKILL.md)
+- [result-curate/SKILL.md](result-curate/SKILL.md)
+
+---
+
+## Minimal Session Layout
+
+新体系推荐的最小目录如下：
+
+```text
+.workflow/
+└── session/
+    ├── state.md
+    ├── context.md
+    ├── design-check.md
+    ├── slices/
+    │   ├── index.md
+    │   └── slice-001.md
+    ├── verify/
+    │   └── slice-001-verify.md
+    └── summary.md
 ```
+
+如果需要多会话并行，可扩展为：
+
+```text
+.workflow/
+└── sessions/
+    └── <session-id>/
+        ├── state.md
+        ├── context.md
+        ├── slices/
+        └── verify/
+```
+
+---
+
+## Minimal State Model
+
+`state.md` 不再维护复杂阶段表与切片总表，只保留恢复所必需的信息：
+
+```markdown
+# Session State
+
+- objective: <...>
+- design_doc: <...>
+- status: active | blocked | completed
+- current_slice: <...>
+- last_completed_slice: <...>
+- last_verify_result: pass | fail | none
+- blocked: yes | no
+- block_reason: <...>
+```
+
+---
 
 ## Usage
 
-### OpenCode（原生 `skill` 工具）
+### 通用调用方式
 
-- **流水线索引**：本文件已通过根目录 [`opencode.json`](../opencode.json) 的 `instructions` 注入上下文。
-- **按阶段加载完整指令**：在支持 OpenCode `skill` 工具的环境中，使用与各阶段 YAML `name` 一致的名称加载，例如调用 `skill` 工具并指定 `name: run-init`、`name: design-intake` 等。可发现条目来自 **`.opencode/skills/<name>/SKILL.md`**（与 `skill/<name>/SKILL.md` 内容同步）。
-- **同步镜像**：修改 `skill/<name>/SKILL.md` 后执行 `scripts/sync-opencode-skills.ps1`（Windows）或 `scripts/sync-opencode-skills.sh`（Unix），再提交 `.opencode/skills/`，避免 OpenCode 与权威定义脱节。
-
-### Cursor（项目 Skills + 规则）
-
-- **项目 Skills**：**`.cursor/skills/<name>/SKILL.md`**，在对话中 `@` 引用对应文件即可按该阶段执行；与 `skill/` 内容一致，由 `scripts/sync-cursor-skills.ps1` 或 `scripts/sync-ide-mirrors.ps1` 同步。
-- **工作区规则**：[`.cursor/rules/ai-design-toolkit.mdc`](../.cursor/rules/ai-design-toolkit.mdc)（可改为 `alwaysApply: true` 或手动 @ 引用）。
-- **快捷命令**：[`.cursor/commands/`](../.cursor/commands/) 下提供常用入口（若你的 Cursor 版本支持项目 Commands）。
-- 说明见 [`.cursor/README.md`](../.cursor/README.md)。
-
-### 调用方式（通用 / Cursor）
-
-每个阶段对应 `skill/<skill-name>/SKILL.md`。使用时：
-
-1. 确保已执行 `run-init` 初始化运行环境
-2. 按照 Pipeline 顺序依次调用对应 Skill
-3. 每个 Skill 完成后检查 Quality Gate
-4. 通过后更新 `state.md` 进入下一阶段
-
-### 命令模式
-
-```
-请按照 skill/<skill-name>/SKILL.md 执行，输入为 <具体输入路径>
+```text
+请按照 skill/<skill-name>/SKILL.md 执行，输入为 <具体路径>
 ```
 
-示例：
+### 推荐顺序
 
-```
-请按照 skill/design-intake/SKILL.md 执行，输入为 .workflow/docs/design/my-feature-design.md
-```
-
-## Runtime Directory Structure
-
-与 `run-init`、`design-to-plan`、`slice-verify`、`result-curate` 及各阶段报告路径一致：
-
-```
-<project>/
-├── .workflow/
-│   ├── docs/
-│   │   ├── design/
-│   │   │   ├── <name>.md                    # 原始设计文档
-│   │   │   └── <name>.normalized.md         # 归一化设计文档
-│   │   └── implementation-plan/
-│   │       ├── <name>-implementation-plan.md
-│   │       ├── backlog.md
-│   │       └── risks.md
-│   └── runs/
-│       └── <run-id>/
-│           ├── state.md                     # 运行状态（含阶段表与切片表）
-│           ├── run-brief.md                 # 本次 run 专用约束（可插拔；run-init 创建）
-│           ├── slices/
-│           │   ├── index.md                 # 切片索引（可选）
-│           │   └── slice-<NNN>.md           # 切片定义
-│           └── stages/                      # 按流水线阶段分目录的产出（详见各 stage skill）
-│               ├── intake/
-│               ├── normalize/
-│               ├── plan/                    # 可选；如 run-status 审计落盘
-│               ├── implement-verify/        # 切片实现说明、验证报告、偏差等
-│               ├── integrate/
-│               └── curate/                  # traceability-matrix、final-index 等归档产出
-└── skill/
-    ├── SKILL.md                             # 本文件 — 索引与约定说明
-    ├── README.md                            # Toolkit 详细说明
-    └── <skill-name>/
-        └── SKILL.md                         # 各阶段 Skill（含 frontmatter）
+```text
+run-init（可选）
+design-check
+design-to-slices
+slice-implement
+slice-verify
 ```
 
-细目与命名约定见 [`docs/superpowers/specs/2026-04-01-workflow-layout-design.md`](../docs/superpowers/specs/2026-04-01-workflow-layout-design.md)。`state.md` §6 产物索引中的路径应指向上述文件（例如 `verification_reports` → `.workflow/runs/<run-id>/stages/implement-verify/`）。**`run-brief.md`**：与 evergreen 设计分离；各节仅为「无」时不增加约束，见 [run-init/SKILL.md](run-init/SKILL.md)。
+### 何时使用扩展层
 
-## State Machine
+只有在以下情形下再进入扩展层：
+- 已有多个切片通过，需要整体链路验证
+- 需要形成可审计、可移交、可复用的总结材料
 
-阶段名与 `state.md` §3 阶段表一致：`intake` → `normalize` → `plan` → `slice` → `implement` / `verify`（循环）→ `integrating`（集成验证）→ `curate` → `close`。顶层 `status`（如 `created`、`failed`、`completed`）与 `current_stage` 不同；run 创建后 `current_stage` 为 `init`，见 [run-init/SKILL.md](run-init/SKILL.md)。
 
-```mermaid
-stateDiagram-v2
-    [*] --> init : run-init
-    init --> intake : design-intake
-    intake --> normalize : design-normalize
-    normalize --> plan : design-to-plan
-    plan --> slice : plan-to-slices
-    slice --> implement : slice-implement
-    implement --> verify : slice-verify
-    verify --> implement : "失败修复或仍有未完成切片_下一实现"
-    verify --> integrating : "通过_全部切片完成"
-    integrating --> implement : "集成失败_回退切片修复"
-    integrating --> curate : integration-verify通过
-    curate --> close : result-curate完成
-    close --> [*]
-```
 
-## Quality Assurance
 
-三层质量保障：
-
-| Level | Mechanism | Description |
-|-------|-----------|-------------|
-| L1 | 设计一致性检查 | 每步产出与设计文档对照，确保不偏离 |
-| L2 | 自动化检查 | 格式校验、lint、类型检查、单元测试、契约测试 |
-| L3 | 人工审查 | 关键节点人工确认，处理模糊判断 |
-
-## Failure Classification & Recovery
-
-| Category | Description | Recovery Strategy |
-|----------|-------------|-------------------|
-| 设计缺陷 | 设计文档信息不足或矛盾 | 暂停流程，提请人工补充设计后从 intake 重试 |
-| 实现偏差 | 代码实现偏离设计规格 | 回退到 slice-implement，对照设计修正 |
-| 验证失败 | 测试不通过或质量门禁未达标 | 分析失败原因，修复后重新执行验证 |
-| 环境问题 | 构建/测试环境异常 | 修复环境后从当前阶段断点恢复 |

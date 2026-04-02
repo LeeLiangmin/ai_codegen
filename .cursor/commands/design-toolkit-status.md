@@ -1,5 +1,5 @@
 ---
-description: Summarize run state and next stage (run-status workflow)
+description: Summarize session state and next step (run-status)
 ---
 
-Read `.workflow/runs/<run-id>/state.md` (ask for run_id if unknown). Follow the procedure in `.cursor/skills/run-status/SKILL.md` and output the status summary plus recommended next skill.
+Read `.workflow/session/state.md` (ask for path if unknown). Follow the procedure in `.cursor/skills/run-status/SKILL.md` and output the status summary plus recommended next skill.

@@ -8,16 +8,14 @@ SKILL_ROOT="$ROOT/skill"
 DEST_ROOT="$ROOT/.opencode/skills"
 
 LEAF_SKILLS=(
-  run-init
-  design-intake
-  design-normalize
-  design-to-plan
-  plan-to-slices
+  design-check
+  design-to-slices
   slice-implement
   slice-verify
+  run-init
+  run-status
   integration-verify
   result-curate
-  run-status
 )
 
 mkdir -p "$DEST_ROOT"
