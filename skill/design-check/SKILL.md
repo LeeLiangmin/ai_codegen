@@ -44,7 +44,7 @@ description: Use when you need the smallest possible design understanding step b
 
 | 输入项 | 必填 | 说明 |
 |---|---|---|
-| 设计文档 | 是 | Markdown 设计文档，或用户直接提供的结构化描述 |
+| 设计文档 | 是 | 一个或多个设计文档（需求规格、概要设计、详细设计等），或用户直接提供的结构化描述 |
 | 现有代码上下文 | 否 | 用于识别实现边界与兼容性约束 |
 | 会话状态 | 否 | 若已初始化，可读取当前 [`state.md`](../run-init/SKILL.md#template) 或等价状态文件 |
 | 用户补充约束 | 否 | 例如本次只做 MVP、禁止改数据库、仅做后端等 |
@@ -59,7 +59,20 @@ description: Use when you need the smallest possible design understanding step b
    - 提取非目标（如果明确给出）
    - 提取技术约束、质量约束、兼容性约束
 
-2. **识别实现所需的关键元素是否存在**
+2. **识别输入文档的层次覆盖度**
+   检查用户提供的文档覆盖了哪些层次（不强制要求全部覆盖，仅作为上下文记录）：
+   - `requirements`（需求层）：目标、功能范围、性能需求、运行环境、用户界面等
+   - `architecture`（架构层）：总体结构、模块划分、接口设计、数据结构设计等
+   - `unit-design`（单元设计层）：模块算法、程序逻辑、输入输出、测试要点等
+
+   每个层次标记为：
+   - `covered`：该层次信息充分
+   - `partial`：该层次有部分信息但不完整
+   - `missing`：该层次信息缺失
+
+   此步骤的目的是为后续 skill 提供上下文，帮助它们判断哪些信息可以直接使用、哪些需要自行推导。**文档层次缺失不等于 `blocked-by-design`**。
+
+3. **识别实现所需的关键元素是否存在**
    最少检查以下五类信息是否达到"足以切片"的程度：
    - 目标
    - 业务流程或主要行为
@@ -90,17 +103,18 @@ description: Use when you need the smallest possible design understanding step b
    - `ready-with-risks`：可以切片，但必须显式携带风险与约束；同样根据复杂度决定是否先走 `design-plan`
    - `blocked-by-design`：设计信息不足，不能安全切片
 
-6. **输出轻量结果**
+7. **输出轻量结果**
    输出内容只保留：
    - 目标摘要
    - 范围摘要
    - 关键约束
+   - 文档覆盖度
    - 缺失项
    - 风险项
    - 复杂度
    - 结论
 
-6. **按需写入轻量文件**
+8. **按需写入轻量文件**
    如果会话目录存在，可写入：
    - `.workflow/session/design-check.md`
 
@@ -117,6 +131,7 @@ description: Use when you need the smallest possible design understanding step b
 - `objective_summary`
 - `scope_summary`
 - `constraints`
+- `document_coverage`
 - `missing_items`
 - `risks`
 - `complexity`
@@ -139,6 +154,11 @@ n/a
 
 ## Constraints
 - ...
+
+## Document Coverage
+- requirements: covered | partial | missing
+- architecture: covered | partial | missing
+- unit-design: covered | partial | missing
 
 ## Missing Items
 - [critical] ...
@@ -163,6 +183,7 @@ ready-for-slicing | ready-with-risks | blocked-by-design
 - [ ] 已明确任务目标
 - [ ] 已明确范围或至少明确当前不做什么
 - [ ] 已识别关键约束
+- [ ] 已识别输入文档的层次覆盖度
 - [ ] 已区分关键缺失项与非关键缺失项
 - [ ] 已评估任务复杂度：`simple` / `complex`
 - [ ] 已给出唯一明确结论：`ready-for-slicing` / `ready-with-risks` / `blocked-by-design`

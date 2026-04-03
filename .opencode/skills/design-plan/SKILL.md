@@ -52,8 +52,8 @@ description: Use when the design is complex enough that you need an overall stru
 
 | 输入项 | 必填 | 说明 |
 |---|---|---|
-| 设计文档 | 是 | 原始设计文档或用户直接提供的结构化描述 |
-| design-check 结果 | 建议 | 用于继承目标、范围、约束、风险、缺失项 |
+| 设计文档 | 是 | 一个或多个设计文档（需求规格、概要设计、详细设计等），或用户直接提供的结构化描述 |
+| design-check 结果 | 建议 | 用于继承目标、范围、约束、风险、缺失项、文档覆盖度 |
 | 现有代码上下文 | 否 | 用于识别已有模块结构与可修改边界 |
 | 用户附加约束 | 否 | 例如仅做 MVP、只动 API 层、不改数据库等 |
 
@@ -67,8 +67,17 @@ description: Use when the design is complex enough that you need an overall stru
    - 当前范围与非目标
    - 技术约束
    - 风险与缺失项
+   - 文档覆盖度（`requirements` / `architecture` / `unit-design` 各层的覆盖状态）
 
-2. **识别系统整体形态**
+2. **根据文档覆盖度确定工作模式**
+   根据 `design-check` 输出的 `document_coverage` 决定本步骤的工作方式：
+   - 若 `architecture: covered`：主要从已有概要设计中**提取**模块结构、接口、依赖，而非自行推导
+   - 若 `architecture: partial`：从已有信息出发，对缺失部分进行**补充推导**
+   - 若 `architecture: missing`：需要基于需求层信息和代码上下文**自行建立**整体结构认知
+
+   此步骤确保 `design-plan` 不重复已有文档中的工作，也不遗漏未覆盖的部分。
+
+3. **识别系统整体形态**
    回答：系统由哪些主要部分组成？
    - 列出主要模块 / 组件 / 层次
    - 每个模块的核心职责（一句话）
@@ -80,19 +89,19 @@ description: Use when the design is complex enough that you need an overall stru
    - 关键分支点
    - 不在本次范围内的流程分支
 
-4. **标记关键接口与依赖**
+5. **标记关键接口与依赖**
    回答：模块之间怎么连接？
    - 模块间的关键接口（输入/输出）
    - 哪些模块之间存在强依赖
    - 哪些模块可以独立推进
 
-5. **给出切片策略建议**
+6. **给出切片策略建议**
    回答：后续切片应沿什么边界去切？
    - 建议的切片维度（按模块、按流程、按层次、按功能点）
    - 建议的切片顺序原则
    - 已知的切片约束（哪些必须先做、哪些不能拆开）
 
-6. **按需写入轻量文件**
+7. **按需写入轻量文件**
    如果会话目录存在，可写入：
    - `.workflow/session/design-plan.md`
 
