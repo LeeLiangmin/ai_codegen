@@ -50,20 +50,24 @@
 
 ```mermaid
 flowchart LR
-    A[design-check] --> B[design-to-slices]
-    B --> C[slice-implement]
-    C --> D[slice-verify]
-    D -->|pass| E{more slices}
-    E -->|yes| C
-    E -->|no| F[done]
-    D -->|fail| C
+    A[design-check] --> B{复杂度}
+    B -->|simple| C[design-to-slices]
+    B -->|complex| P[design-plan]
+    P --> C
+    C --> D[slice-implement]
+    D --> E[slice-verify]
+    E -->|pass| F{more slices}
+    F -->|yes| D
+    F -->|no| G[done]
+    E -->|fail| D
 ```
 
-包含四个 skill：
+包含五个 skill（其中 `design-plan` 为条件性步骤）：
 
 | Skill | 文件 | 作用 |
 |---|---|---|
-| `design-check` | [design-check/SKILL.md](design-check/SKILL.md) | 从设计中提取目标、约束、风险、缺失 |
+| `design-check` | [design-check/SKILL.md](design-check/SKILL.md) | 从设计中提取目标、约束、风险、缺失，评估复杂度 |
+| `design-plan` | [design-plan/SKILL.md](design-plan/SKILL.md) | 建立整体执行结构认知（复杂任务时使用） |
 | `design-to-slices` | [design-to-slices/SKILL.md](design-to-slices/SKILL.md) | 直接把设计转成最小可验证切片 |
 | `slice-implement` | [slice-implement/SKILL.md](slice-implement/SKILL.md) | 只实现一个切片 |
 | `slice-verify` | [slice-verify/SKILL.md](slice-verify/SKILL.md) | 只验证一个切片 |
@@ -101,6 +105,7 @@ flowchart LR
     ├── state.md
     ├── context.md
     ├── design-check.md
+    ├── design-plan.md          # 复杂任务时生成
     ├── slices/
     │   ├── index.md
     │   ├── slice-001.md
@@ -117,7 +122,8 @@ flowchart LR
 |---|---|---|
 | `state.md` | 是 | 极简恢复状态 |
 | `context.md` | 否 | 会话背景与固定约束 |
-| `design-check.md` | 否 | 设计检查摘要与风险 |
+| `design-check.md` | 否 | 设计检查摘要与风险（含复杂度） |
+| `design-plan.md` | 否 | 整体结构规划（复杂任务时生成） |
 | `slices/index.md` | 建议 | 切片概览 |
 | `slices/slice-NNN.md` | 是 | 单切片定义 |
 | `verify/slice-NNN-verify.md` | 建议 | 单切片验证结果 |
@@ -163,6 +169,7 @@ flowchart LR
 ```text
 run-init（可选）
 design-check
+design-plan（复杂任务推荐）
 design-to-slices
 slice-implement
 slice-verify
@@ -184,6 +191,8 @@ slice-verify
 
 则应停下并补充设计，而不是伪造计划或伪造切片。
 
+如果 `design-check` 判断 `complexity: complex`，建议先执行 [design-plan/SKILL.md](design-plan/SKILL.md) 建立整体结构认知，再进入切片阶段。跳过 `design-plan` 不会阻塞流程，但可能导致切片质量下降。
+
 ---
 
 ## 8. 对 OpenCode / Cursor 的含义
@@ -194,6 +203,7 @@ slice-verify
 
 但同步对象将改为新的核心体系。后续主同步对象应优先包含：
 - [design-check/SKILL.md](design-check/SKILL.md)
+- [design-plan/SKILL.md](design-plan/SKILL.md)
 - [design-to-slices/SKILL.md](design-to-slices/SKILL.md)
 - [slice-implement/SKILL.md](slice-implement/SKILL.md)
 - [slice-verify/SKILL.md](slice-verify/SKILL.md)

@@ -60,7 +60,7 @@ description: Use when you need the smallest possible design understanding step b
    - 提取技术约束、质量约束、兼容性约束
 
 2. **识别实现所需的关键元素是否存在**
-   最少检查以下五类信息是否达到“足以切片”的程度：
+   最少检查以下五类信息是否达到"足以切片"的程度：
    - 目标
    - 业务流程或主要行为
    - 模块 / 组件边界
@@ -73,19 +73,31 @@ description: Use when you need the smallest possible design understanding step b
    - `missing-non-critical`：缺失但仍可开始局部切片
    - `risk`：存在冲突、不确定性、复杂依赖或环境风险
 
-4. **判断是否可进入切片阶段**
+4. **评估任务复杂度**
+   判断任务是否需要先建立整体结构认知再切片：
+   - `simple`：可直接切片，无需整体结构规划
+   - `complex`：建议先执行 [design-plan/SKILL.md](../design-plan/SKILL.md) 建立结构认知
+
+   复杂度判断参考维度：
+   - 涉及模块数量（单模块 vs 跨模块）
+   - 是否需要新建系统或大范围重构
+   - 模块间依赖是否复杂
+   - 是否存在需要统一的技术选型决策
+
+5. **判断是否可进入切片阶段**
    只做以下三种结论之一：
-   - `ready-for-slicing`：可以直接进入 [design-to-slices/SKILL.md](../design-to-slices/SKILL.md)
-   - `ready-with-risks`：可以切片，但必须显式携带风险与约束
+   - `ready-for-slicing`：可以直接进入 [design-to-slices/SKILL.md](../design-to-slices/SKILL.md)（若 `complexity: simple`）或先进入 [design-plan/SKILL.md](../design-plan/SKILL.md)（若 `complexity: complex`）
+   - `ready-with-risks`：可以切片，但必须显式携带风险与约束；同样根据复杂度决定是否先走 `design-plan`
    - `blocked-by-design`：设计信息不足，不能安全切片
 
-5. **输出轻量结果**
+6. **输出轻量结果**
    输出内容只保留：
    - 目标摘要
    - 范围摘要
    - 关键约束
    - 缺失项
    - 风险项
+   - 复杂度
    - 结论
 
 6. **按需写入轻量文件**
@@ -107,6 +119,7 @@ description: Use when you need the smallest possible design understanding step b
 - `constraints`
 - `missing_items`
 - `risks`
+- `complexity`
 - `decision`
 
 ### 可选文件输出
@@ -134,6 +147,9 @@ n/a
 ## Risks
 - ...
 
+## Complexity
+simple | complex
+
 ## Decision
 ready-for-slicing | ready-with-risks | blocked-by-design
 ```
@@ -148,6 +164,7 @@ ready-for-slicing | ready-with-risks | blocked-by-design
 - [ ] 已明确范围或至少明确当前不做什么
 - [ ] 已识别关键约束
 - [ ] 已区分关键缺失项与非关键缺失项
+- [ ] 已评估任务复杂度：`simple` / `complex`
 - [ ] 已给出唯一明确结论：`ready-for-slicing` / `ready-with-risks` / `blocked-by-design`
 
 ---
@@ -169,8 +186,11 @@ ready-for-slicing | ready-with-risks | blocked-by-design
 
 - 不生成标准化设计文档
 - 不生成 implementation plan
+- 不建立整体结构认知（这是 `design-plan` 的职责）
 - 不直接拆切片
 - 不编写代码
 - 不执行验证命令
 
-如果设计已足够开始执行，下一步应进入 [design-to-slices/SKILL.md](../design-to-slices/SKILL.md)。
+如果设计已足够开始执行：
+- 若 `complexity: simple`，下一步应进入 [design-to-slices/SKILL.md](../design-to-slices/SKILL.md)
+- 若 `complexity: complex`，下一步建议先进入 [design-plan/SKILL.md](../design-plan/SKILL.md)

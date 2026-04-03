@@ -7,7 +7,7 @@ This repository is set up for **[OpenCode](https://open-code.ai/)** as the prima
 The system uses a **minimal slice loop** as the default path, not a heavy document pipeline.
 
 1. Start from [`skill/SKILL.md`](skill/SKILL.md): three-layer model (Core / Infra / Extensions), pipeline diagram, minimal state model, and recommended session layout.
-2. **Core loop**: `design-check` → `design-to-slices` → `slice-implement` ↔ `slice-verify` — repeat until all slices pass.
+2. **Core loop**: `design-check` → `design-plan` (complex tasks) → `design-to-slices` → `slice-implement` ↔ `slice-verify` — repeat until all slices pass.
 3. **Infra** (optional): `run-init` creates a minimal session directory and `state.md`; `run-status` reads current state and suggests the next step.
 4. **Extensions** (on demand): `integration-verify` for cross-slice checks; `result-curate` for archival assets.
 5. For each stage, follow [`skill/<skill-name>/SKILL.md`](skill/) (YAML `name` / `description` in frontmatter).

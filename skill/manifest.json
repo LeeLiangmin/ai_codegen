@@ -1,8 +1,8 @@
 {
-  "version": "2",
-  "description": "Machine-readable registry of the design-to-code pipeline skills (paths relative to skill/). The system uses a minimal slice loop: design-check → design-to-slices → slice-implement ↔ slice-verify.",
+  "version": "3",
+  "description": "Machine-readable registry of the design-to-code pipeline skills (paths relative to skill/). The system uses a minimal slice loop: design-check → design-plan (complex tasks) → design-to-slices → slice-implement ↔ slice-verify.",
   "layers": {
-    "core": ["design-check", "design-to-slices", "slice-implement", "slice-verify"],
+    "core": ["design-check", "design-plan", "design-to-slices", "slice-implement", "slice-verify"],
     "infra": ["run-init", "run-status"],
     "extensions": ["integration-verify", "result-curate"]
   },
@@ -17,10 +17,21 @@
       ]
     },
     {
+      "name": "design-plan",
+      "path": "design-plan/SKILL.md",
+      "layer": "core",
+      "predecessors": ["design-check"],
+      "conditional": true,
+      "condition": "complexity == complex",
+      "primaryOutputs": [
+        ".workflow/session/design-plan.md"
+      ]
+    },
+    {
       "name": "design-to-slices",
       "path": "design-to-slices/SKILL.md",
       "layer": "core",
-      "predecessors": ["design-check"],
+      "predecessors": ["design-check", "design-plan"],
       "primaryOutputs": [
         ".workflow/session/slices/index.md",
         ".workflow/session/slices/slice-<NNN>.md"

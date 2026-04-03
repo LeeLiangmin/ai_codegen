@@ -9,6 +9,7 @@ DEST_ROOT="$ROOT/.cursor/skills"
 
 LEAF_SKILLS=(
   design-check
+  design-plan
   design-to-slices
   slice-implement
   slice-verify

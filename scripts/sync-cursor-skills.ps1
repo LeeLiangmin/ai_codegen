@@ -9,6 +9,7 @@ $destRoot = Join-Path $repoRoot ".cursor/skills"
 
 $leafSkills = @(
     "design-check",
+    "design-plan",
     "design-to-slices",
     "slice-implement",
     "slice-verify",

@@ -24,6 +24,7 @@ description: Use when the design is sufficient to act and you need to derive the
 在以下场景使用：
 
 - 已完成 [design-check/SKILL.md](../design-check/SKILL.md)，结论为 `ready-for-slicing` 或 `ready-with-risks`
+- 对于复杂任务，已完成 [design-plan/SKILL.md](../design-plan/SKILL.md)，已建立整体结构认知
 - 已经明确任务目标，准备开始落地实现
 - 需要把大目标切成弱模型也能稳定执行的小任务
 - 续跑时，需要重新整理剩余可执行切片
@@ -35,7 +36,8 @@ description: Use when the design is sufficient to act and you need to derive the
 | 输入项 | 必填 | 说明 |
 |---|---|---|
 | 设计文档 | 是 | 原始设计文档或用户直接提供的结构化描述 |
-| design-check 结果 | 建议 | 用于继承目标、范围、约束、风险、缺失项 |
+| design-check 结果 | 建议 | 用于继承目标、范围、约束、风险、缺失项、复杂度 |
+| design-plan 结果 | 建议 | 复杂任务时提供；用于继承模块边界、主流程、依赖关系、切片策略 |
 | 现有代码上下文 | 否 | 用于识别可修改边界与已有实现 |
 | 用户附加约束 | 否 | 例如仅做 MVP、只动 API 层、不改数据库等 |
 | 会话状态 | 否 | 若存在，可用于识别已完成切片与剩余任务 |
@@ -51,6 +53,12 @@ description: Use when the design is sufficient to act and you need to derive the
    - 非目标
    - 技术约束
    - 风险与缺失项
+
+   若存在 `design-plan` 结果，还应继承：
+   - 模块边界与职责
+   - 主执行流
+   - 关键接口与依赖
+   - 切片策略建议
 
 2. **识别可独立推进的实现单元**
    从以下维度寻找候选切片：

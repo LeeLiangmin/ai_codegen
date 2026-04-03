@@ -10,6 +10,7 @@ $destRoot = Join-Path $repoRoot ".opencode/skills"
 
 $leafSkills = @(
     "design-check",
+    "design-plan",
     "design-to-slices",
     "slice-implement",
     "slice-verify",

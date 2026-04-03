@@ -19,13 +19,16 @@ description: Use when operating this repo's rebuilt design-to-code system based 
 
 ```mermaid
 flowchart LR
-    A[design-check] --> B[design-to-slices]
-    B --> C[slice-implement]
-    C --> D[slice-verify]
-    D -->|pass| E{还有切片?}
-    E -->|yes| C
-    E -->|no| F[完成核心闭环]
-    D -->|fail| C
+    A[design-check] --> B{复杂度}
+    B -->|simple| C[design-to-slices]
+    B -->|complex| P[design-plan]
+    P --> C
+    C --> D[slice-implement]
+    D --> E[slice-verify]
+    E -->|pass| F{还有切片?}
+    F -->|yes| D
+    F -->|no| G[完成核心闭环]
+    E -->|fail| D
 ```
 
 ---
@@ -36,7 +39,7 @@ Toolkit 现在分为三层：
 
 | Layer | Purpose | Default | Skills |
 |---|---|---|---|
-| Core | 最小可执行闭环 | 是 | `design-check`、`design-to-slices`、`slice-implement`、`slice-verify` |
+| Core | 最小可执行闭环 | 是 | `design-check`、`design-plan`（条件性）、`design-to-slices`、`slice-implement`、`slice-verify` |
 | Infra | 会话初始化与只读恢复 | 是 | `run-init`、`run-status` |
 | Extensions | 增强验证与归档沉淀 | 否 | `integration-verify`、`result-curate` |
 
@@ -56,10 +59,11 @@ Toolkit 现在分为三层：
 
 | # | Skill | Path | Purpose | Primary Input | Primary Output |
 |---|---|---|---|---|---|
-| 1 | design-check | [design-check/SKILL.md](design-check/SKILL.md) | 提取目标、约束、风险并判断是否足以开始切片 | 设计文档 | 轻量设计检查结果 |
-| 2 | design-to-slices | [design-to-slices/SKILL.md](design-to-slices/SKILL.md) | 直接把设计转换为最小可验证切片 | 设计文档 / design-check 结果 | 切片定义集合 |
-| 3 | slice-implement | [slice-implement/SKILL.md](slice-implement/SKILL.md) | 只实现一个切片，且严格遵守边界 | 单个切片定义 | 代码改动 + 必要测试 |
-| 4 | slice-verify | [slice-verify/SKILL.md](slice-verify/SKILL.md) | 对单个切片做一致性检查与自动验证 | 单个切片 + 代码改动 | pass/fail 验证结果 |
+| 1 | design-check | [design-check/SKILL.md](design-check/SKILL.md) | 提取目标、约束、风险，评估复杂度，判断是否足以开始切片 | 设计文档 | 轻量设计检查结果（含复杂度） |
+| 2 | design-plan | [design-plan/SKILL.md](design-plan/SKILL.md) | 建立整体执行结构认知（模块边界、主流程、依赖、切片策略） | 设计文档 / design-check 结果 | 轻量结构规划 |
+| 3 | design-to-slices | [design-to-slices/SKILL.md](design-to-slices/SKILL.md) | 直接把设计转换为最小可验证切片 | 设计文档 / design-check / design-plan 结果 | 切片定义集合 |
+| 4 | slice-implement | [slice-implement/SKILL.md](slice-implement/SKILL.md) | 只实现一个切片，且严格遵守边界 | 单个切片定义 | 代码改动 + 必要测试 |
+| 5 | slice-verify | [slice-verify/SKILL.md](slice-verify/SKILL.md) | 对单个切片做一致性检查与自动验证 | 单个切片 + 代码改动 | pass/fail 验证结果 |
 
 ### Infra
 
@@ -89,12 +93,23 @@ Toolkit 现在分为三层：
 - 读取设计文档
 - 提取目标、范围、约束
 - 标记缺失项与风险
+- 评估任务复杂度（`simple` / `complex`）
 - 判断是否足以开始切片
 
-### Step 2: 直接拆切片
+### Step 1.5: 结构规划（条件性）
+
+若 `design-check` 判断 `complexity: complex`，执行 [design-plan/SKILL.md](design-plan/SKILL.md)：
+- 识别系统整体形态与模块边界
+- 梳理主执行流
+- 标记关键接口与依赖
+- 给出切片策略建议
+
+若 `complexity: simple`，跳过此步骤。
+
+### Step 2: 拆切片
 
 执行 [design-to-slices/SKILL.md](design-to-slices/SKILL.md)：
-- 不先生成厚 implementation plan
+- 继承 design-check 结果，以及 design-plan 结果（若存在）
 - 直接产出最小可验证切片
 - 每个切片都应具备目标、边界、依赖、验证方式
 
@@ -124,6 +139,7 @@ Toolkit 现在分为三层：
     ├── state.md
     ├── context.md
     ├── design-check.md
+    ├── design-plan.md          # 复杂任务时生成
     ├── slices/
     │   ├── index.md
     │   └── slice-001.md
@@ -178,6 +194,7 @@ Toolkit 现在分为三层：
 ```text
 run-init（可选）
 design-check
+design-plan（复杂任务推荐）
 design-to-slices
 slice-implement
 slice-verify
