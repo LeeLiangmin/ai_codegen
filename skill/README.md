@@ -14,7 +14,7 @@
 1. **长指令负担**：单个 skill 需要同时记住太多规则
 2. **多产物耦合**：上一阶段输出格式一旦不稳定，下一阶段就开始漂移
 3. **状态机过厚**：模型需要反复判断当前阶段、前置条件、输出落点
-4. **中间文档过重**：模型把精力消耗在“写文档”而不是“做任务”
+4. **中间文档过重**：模型把精力消耗在"写文档"而不是"做任务"
 
 
 ---
@@ -41,6 +41,12 @@
 ### 2.6 增强能力后置
 集成验证、结果归档、追踪矩阵等能力仍有价值，但应当作为增强层，而不是默认堵在核心路径前面。
 
+### 2.7 反馈环越短越好
+在实现步骤内部即获得反馈（TDD 内循环），而不是等到验证步骤才发现方向错误。反馈环越短，弱模型稳定性越高。
+
+### 2.8 质量检查前置
+语言质量工具（lint / format / type check）在实现阶段就运行并修复，而不是留到验证阶段才发现。验证阶段做的是独立复核，而非首次检查。
+
 ---
 
 ## 3. 三层模型
@@ -62,15 +68,26 @@ flowchart LR
     E -->|fail| D
 ```
 
+`slice-implement` 内部使用 **TDD 内循环**：
+
+```mermaid
+flowchart LR
+    R["Red: 写失败测试"] --> G["Green: 最小实现"]
+    G --> RF["Refactor: 整理 + 质量检查"]
+    RF --> DONE["交付 verify"]
+```
+
+`design-to-slices` 产出的切片包含 **Wave 分组**，同 Wave 可并行执行。
+
 包含五个 skill（其中 `design-plan` 为条件性步骤）：
 
 | Skill | 文件 | 作用 |
 |---|---|---|
 | `design-check` | [design-check/SKILL.md](design-check/SKILL.md) | 从设计中提取目标、约束、风险、缺失，评估复杂度 |
 | `design-plan` | [design-plan/SKILL.md](design-plan/SKILL.md) | 建立整体执行结构认知（复杂任务时使用） |
-| `design-to-slices` | [design-to-slices/SKILL.md](design-to-slices/SKILL.md) | 直接把设计转成最小可验证切片 |
-| `slice-implement` | [slice-implement/SKILL.md](slice-implement/SKILL.md) | 只实现一个切片 |
-| `slice-verify` | [slice-verify/SKILL.md](slice-verify/SKILL.md) | 只验证一个切片 |
+| `design-to-slices` | [design-to-slices/SKILL.md](design-to-slices/SKILL.md) | 直接把设计转成最小可验证切片（含 Wave 分组与操作化 verification） |
+| `slice-implement` | [slice-implement/SKILL.md](slice-implement/SKILL.md) | 用 TDD 内循环实现一个切片（Red→Green→Refactor + 质量检查） |
+| `slice-verify` | [slice-verify/SKILL.md](slice-verify/SKILL.md) | 以独立视角复核一个切片 |
 
 ### 3.2 Infra：基础设施
 不是业务核心，但支持恢复与续跑。
@@ -124,8 +141,8 @@ flowchart LR
 | `context.md` | 否 | 会话背景与固定约束 |
 | `design-check.md` | 否 | 设计检查摘要与风险（含复杂度） |
 | `design-plan.md` | 否 | 整体结构规划（复杂任务时生成） |
-| `slices/index.md` | 建议 | 切片概览 |
-| `slices/slice-NNN.md` | 是 | 单切片定义 |
+| `slices/index.md` | 建议 | 切片概览（含 Wave 分组） |
+| `slices/slice-NNN.md` | 是 | 单切片定义（含操作化 verification） |
 | `verify/slice-NNN-verify.md` | 建议 | 单切片验证结果 |
 | `summary.md` | 否 | 本次会话总结 |
 
@@ -171,8 +188,8 @@ run-init（可选）
 design-check
 design-plan（复杂任务推荐）
 design-to-slices
-slice-implement
-slice-verify
+slice-implement（TDD: Red → Green → Refactor + 质量检查）
+slice-verify（独立复核）
 ```
 
 ### 7.2 什么时候执行扩展层
@@ -220,3 +237,6 @@ slice-verify
 - 用最少 skill 构成最小闭环
 - 用最少状态支持恢复
 - 用增强层承载高级治理需求
+- 用 TDD 内循环缩短反馈周期
+- 用语言质量检查工具前置确保代码质量
+- 用 Wave 分组支持切片并行执行

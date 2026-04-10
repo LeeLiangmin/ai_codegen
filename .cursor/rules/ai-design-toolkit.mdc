@@ -16,6 +16,12 @@ The system uses a **minimal slice loop**, not a heavy document pipeline. Default
 design-check → design-to-slices → slice-implement ↔ slice-verify
 ```
 
+Key enhancements:
+- **TDD inner loop** in `slice-implement`: Red (write failing test) → Green (minimal implementation) → Refactor (quality checks + cleanup)
+- **Wave grouping** in `design-to-slices`: slices are assigned wave numbers for parallel execution
+- **Operationalized verification**: each slice must have concrete `verification.criteria` (not vague "works correctly")
+- **Language quality checks**: lint/format/type-check tools run during Refactor step, not deferred to verify
+
 ## Cursor-native layout
 
 - **Project skills** (same bodies as `skill/<name>/`): [`.cursor/skills/<name>/SKILL.md`](../skills/) — attach in chat or let the agent open by path when executing a stage.
@@ -25,9 +31,11 @@ design-check → design-to-slices → slice-implement ↔ slice-verify
 ## Execution order
 
 1. Read [`skill/SKILL.md`](../../skill/SKILL.md) for the pipeline diagram and three-layer model.
-2. **Core loop**: `design-check` → `design-to-slices` → (`slice-implement` ↔ `slice-verify`)* until all slices pass.
-3. **Infra** (optional): `run-init` to create session directory; `run-status` to resume.
-4. **Extensions** (on demand): `integration-verify` → `result-curate`.
+2. **Core loop**: `design-check` → `design-plan` (if complex) → `design-to-slices` → (`slice-implement` ↔ `slice-verify`)* until all slices pass.
+3. **slice-implement details**: TDD inner loop (Red → Green → Refactor with language quality checks). See [slice-implement/SKILL.md](../skills/slice-implement/SKILL.md).
+4. **slice-verify details**: Independent review — boundary check, design alignment, independent automated re-check. See [slice-verify/SKILL.md](../skills/slice-verify/SKILL.md).
+5. **Infra** (optional): `run-init` to create session directory; `run-status` to resume.
+6. **Extensions** (on demand): `integration-verify` → `result-curate`.
 
 ## Registry
 

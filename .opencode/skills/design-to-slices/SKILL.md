@@ -68,7 +68,7 @@ description: Use when the design is sufficient to act and you need to derive the
    - 单一业务流程中的一小段
    - 单一修复目标
 
-3. **按“最小可验证”原则切分**
+3. **按"最小可验证"原则切分**
    每个切片必须满足：
    - 能在一次实现-验证闭环中完成
    - 目标单一，不混合多个大问题
@@ -82,11 +82,28 @@ description: Use when the design is sufficient to act and you need to derive the
    - `title`
    - `objective`
    - `depends_on`
+   - `wave`（执行波次，见步骤 6）
    - `allowed_changes`
    - `forbidden_changes`
    - `expected_outputs`
-   - `verification`
+   - `verification`：必须足够具体到可直接编写自动化检查或执行手动验证步骤
+     - `criteria`（必填）：具体的验收条件，描述可观测的行为或状态
+     - `test_sketch`（可选）：建议的测试骨架或验证伪代码，帮助 `slice-implement` 阶段快速进入 TDD Red 步骤
    - `risks`
+
+   **⚠️ `verification.criteria` 的反例指导**
+
+   不接受以下类型的 verification：
+   - "功能正常工作"
+   - "测试通过"
+   - "符合预期"
+   - "代码质量良好"
+
+   ✅ 有效的 verification 示例：
+   - `criteria: "调用 POST /users 返回 201，数据库中新增对应记录"`
+   - `criteria: "配置文件加载失败时抛出 ConfigError，包含文件路径信息"`
+   - `criteria: "输入超过 1000 条记录时处理时间 < 2 秒"`
+   - `criteria: "CLI 运行 --help 时输出包含所有子命令名称"`
 
 5. **控制切片粒度**
    如果某切片存在以下现象，应继续拆小：
@@ -96,11 +113,15 @@ description: Use when the design is sufficient to act and you need to derive the
    - 需要多个前置条件同时成立
    - 失败后难以回退
 
-6. **建立最小依赖关系**
+6. **建立最小依赖关系与并行分组**
    只保留执行所必需的依赖关系：
-   - 无依赖切片优先
-   - 有依赖的切片只引用直接前置项
-   - 避免构造复杂依赖图
+   - 每个切片只引用直接前置项（`depends_on`）
+   - 不建模间接依赖
+
+   基于 `depends_on` 关系，为每个切片分配执行波次（Wave）：
+   - 规则：`wave = max(所有 depends_on 切片的 wave) + 1`
+   - 无依赖切片：`wave = 1`
+   - 同一 Wave 内的切片互不依赖，可并行执行
 
 7. **排序并选择起始切片**
    优先级规则默认如下：
@@ -108,10 +129,11 @@ description: Use when the design is sufficient to act and you need to derive the
    - 先基础能力，再扩展能力
    - 先解锁后续工作的前置切片
    - 先修改范围小、验证成本低的切片
+   - 在同一优先级内，Wave 编号小的先执行
 
 8. **输出切片集合**
    最终输出：
-   - 一个切片索引
+   - 一个切片索引（含 Wave 分组）
    - 若干单切片定义
    - 一个建议先执行的首切片
 
@@ -139,9 +161,16 @@ description: Use when the design is sufficient to act and you need to derive the
 ```markdown
 # Slices Index
 
-| slice_id | title | depends_on | objective | verification | status |
-|---|---|---|---|---|---|
-| slice-001 | ... | — | ... | ... | pending |
+| slice_id | title | depends_on | wave | objective | verification | status |
+|---|---|---|---|---|---|---|
+| slice-001 | ... | — | 1 | ... | ... | pending |
+| slice-002 | ... | — | 1 | ... | ... | pending |
+| slice-003 | ... | slice-001, slice-002 | 2 | ... | ... | pending |
+
+## Execution Waves
+
+- **Wave 1** (可并行): slice-001, slice-002
+- **Wave 2** (需 Wave 1 完成): slice-003
 ```
 
 ### 单切片建议结构
@@ -153,6 +182,7 @@ description: Use when the design is sufficient to act and you need to derive the
 - title: <...>
 - objective: <...>
 - depends_on: []
+- wave: 1
 
 ## Allowed Changes
 - ...
@@ -166,11 +196,28 @@ description: Use when the design is sufficient to act and you need to derive the
 - docs: ...
 
 ## Verification
-- ...
+- criteria: <具体的、可观测的验收条件>
+- test_sketch: |    （可选）
+    test("描述测试目标", () => {
+      // 测试骨架
+    })
 
 ## Risks
 - ...
 ```
+
+---
+
+## 续拆场景
+
+当从 `slice-implement` 或 `slice-verify` 回退到本 skill 时：
+
+- 保留已完成且已通过验证的切片，不重新定义
+- 只对当前失败/阻塞的切片进行重新拆分
+- 新切片 ID 在原切片基础上延续（如 slice-003a, slice-003b）
+- 重新计算受影响切片的 Wave 编号
+- 更新 `slices/index.md` 反映变更
+- 确保新切片的 `verification.criteria` 同样满足操作化要求
 
 ---
 
@@ -181,8 +228,9 @@ description: Use when the design is sufficient to act and you need to derive the
 - [ ] 已定义至少一个可安全执行的切片
 - [ ] 每个切片目标单一且可验证
 - [ ] 每个切片的允许修改范围清晰
-- [ ] 每个切片都有明确验证方式
+- [ ] 每个切片的 `verification.criteria` 足够具体到可直接写测试或执行验证命令
 - [ ] 切片依赖关系最小化
+- [ ] 每个切片已分配 Wave 编号
 - [ ] 已明确推荐的首个执行切片
 
 ---

@@ -1,6 +1,6 @@
 ---
 name: ai-design-toolkit
-description: Use when operating this repo's rebuilt design-to-code system based on a minimal slice loop: check design, derive slices, implement one slice, verify one slice
+description: Use when operating this repo's rebuilt design-to-code system based on a minimal slice loop: check design, derive slices, implement one slice (TDD + quality checks), verify one slice
 ---
 
 # AI Design-Driven Implementation Toolkit
@@ -31,6 +31,8 @@ flowchart LR
     E -->|fail| D
 ```
 
+其中 `slice-implement` 内部使用 TDD 内循环（Red → Green → Refactor），Refactor 阶段同时负责语言质量检查。`design-to-slices` 产出的切片包含 Wave 分组信息，支持同 Wave 内并行执行。
+
 ---
 
 ## System Model
@@ -50,6 +52,8 @@ Toolkit 现在分为三层：
 - **默认接受不完整输入**：设计不完整时先标风险，不自动扩张为文档治理链
 - **最小状态**：只记录恢复所必需的信息
 - **增强层可选**：集成验证与结果归档不是默认阻塞步骤
+- **TDD 内循环**：在实现步骤内部获得快速反馈，而非等到验证步骤才发现问题
+- **质量检查前置**：语言质量工具在实现阶段的 Refactor 步骤中运行并修复
 
 ---
 
@@ -61,9 +65,9 @@ Toolkit 现在分为三层：
 |---|---|---|---|---|---|
 | 1 | design-check | [design-check/SKILL.md](design-check/SKILL.md) | 提取目标、约束、风险，评估复杂度，判断是否足以开始切片 | 设计文档 | 轻量设计检查结果（含复杂度） |
 | 2 | design-plan | [design-plan/SKILL.md](design-plan/SKILL.md) | 建立整体执行结构认知（模块边界、主流程、依赖、切片策略） | 设计文档 / design-check 结果 | 轻量结构规划 |
-| 3 | design-to-slices | [design-to-slices/SKILL.md](design-to-slices/SKILL.md) | 直接把设计转换为最小可验证切片 | 设计文档 / design-check / design-plan 结果 | 切片定义集合 |
-| 4 | slice-implement | [slice-implement/SKILL.md](slice-implement/SKILL.md) | 只实现一个切片，且严格遵守边界 | 单个切片定义 | 代码改动 + 必要测试 |
-| 5 | slice-verify | [slice-verify/SKILL.md](slice-verify/SKILL.md) | 对单个切片做一致性检查与自动验证 | 单个切片 + 代码改动 | pass/fail 验证结果 |
+| 3 | design-to-slices | [design-to-slices/SKILL.md](design-to-slices/SKILL.md) | 直接把设计转换为最小可验证切片，含 Wave 分组与操作化 verification | 设计文档 / design-check / design-plan 结果 | 切片定义集合（含 Wave 分组） |
+| 4 | slice-implement | [slice-implement/SKILL.md](slice-implement/SKILL.md) | 用 TDD 内循环实现一个切片：写测试→写实现→质量检查，严格遵守边界 | 单个切片定义 | 代码改动 + 测试 + 质量检查通过 |
+| 5 | slice-verify | [slice-verify/SKILL.md](slice-verify/SKILL.md) | 以独立视角复核单个切片：边界、设计一致性、独立自动化检查 | 单个切片 + 代码改动 | pass/fail 验证结果 |
 
 ### Infra
 
@@ -111,21 +115,38 @@ Toolkit 现在分为三层：
 执行 [design-to-slices/SKILL.md](design-to-slices/SKILL.md)：
 - 继承 design-check 结果，以及 design-plan 结果（若存在）
 - 直接产出最小可验证切片
-- 每个切片都应具备目标、边界、依赖、验证方式
+- 每个切片都应具备目标、边界、依赖、操作化的 verification（含 criteria 和可选 test_sketch）
+- 为每个切片分配 Wave 编号，同 Wave 可并行
 
-### Step 3: 单切片实现
+### Step 3: 单切片实现（TDD 内循环）
 
-执行 [slice-implement/SKILL.md](slice-implement/SKILL.md)。
+执行 [slice-implement/SKILL.md](slice-implement/SKILL.md)：
+- 先写测试（Red）：根据 verification.criteria 编写最小失败测试
+- 再写实现（Green）：编写刚好让测试通过的最少代码
+- 整理与质量检查（Refactor）：运行语言质量工具，修复问题，重跑测试确认
+- 无可操作测试目标的切片（纯配置等）直接进入实现
 
-### Step 4: 单切片验证
+### Step 4: 单切片验证（独立复核）
 
-执行 [slice-verify/SKILL.md](slice-verify/SKILL.md)。
+执行 [slice-verify/SKILL.md](slice-verify/SKILL.md)：
+- 检查边界一致性
+- 检查设计一致性
+- 独立运行自动化检查（不依赖 implement 阶段的缓存结果）
+- 给出 pass / fail / blocked 结论
 
 ### Step 5: 按需增强
 
-在需要时，再执行：
-- [integration-verify/SKILL.md](integration-verify/SKILL.md)
-- [result-curate/SKILL.md](result-curate/SKILL.md)
+核心闭环完成后，根据需要选择性执行：
+
+**是否需要集成验证？**
+- 如果存在跨切片的模块交互、数据流传递，建议执行 [integration-verify/SKILL.md](integration-verify/SKILL.md)
+- 如果所有切片独立且无交互，可跳过
+
+**是否需要归档沉淀？**
+- 如果会话结果需要可审计、可移交或供下一轮迭代使用，执行 [result-curate/SKILL.md](result-curate/SKILL.md)
+- 如果是一次性修复或探索性实现，可跳过
+
+两者互不依赖，但通常按 `integration-verify` → `result-curate` 顺序执行。
 
 ---
 
@@ -196,16 +217,12 @@ run-init（可选）
 design-check
 design-plan（复杂任务推荐）
 design-to-slices
-slice-implement
-slice-verify
+slice-implement（TDD: Red → Green → Refactor）
+slice-verify（独立复核）
 ```
 
 ### 何时使用扩展层
 
 只有在以下情形下再进入扩展层：
-- 已有多个切片通过，需要整体链路验证
+- 已有多个切片通过，且存在跨切片模块交互，需要整体链路验证
 - 需要形成可审计、可移交、可复用的总结材料
-
-
-
-
